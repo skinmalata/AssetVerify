@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Track a Request | AssetVerify Property Services</title>
+  <meta name="description" content="Track the status of your AssetVerify property or asset verification request using your reference number.">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/track.html">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="track">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section section--grey section--tight">
+      <div class="container" style="max-width:720px">
+        <p class="eyebrow">Track a Request</p>
+        <h1>Track your verification request</h1>
+        <p class="lead">Enter your reference number (and the email you used, for security) to see the current status.</p>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container" style="max-width:720px">
+        <div class="card">
+          <div id="track-alert"></div>
+          <form id="track-form" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="reference">Reference number <span class="req">*</span></label>
+                <input type="text" id="reference" name="reference" required placeholder="AV-2026-000000">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="email">Email used on the request <span class="req">*</span></label>
+                <input type="email" id="email" name="email" required autocomplete="email">
+                <span class="error-text"></span>
+              </div>
+            </div>
+            <button type="submit" class="btn btn--primary mt-4">Track request</button>
+          </form>
+        </div>
+        <div id="track-result" class="mt-6"></div>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var api = AssetVerify.api, ui = AssetVerify.ui;
+      var form = document.getElementById("track-form");
+      var ref = ui.qs("ref");
+      if (ref) document.getElementById("reference").value = ref;
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (!ui.validateRequired(form)) { ui.showAlert("#track-alert", "Please complete both fields.", "danger"); return; }
+        var btn = form.querySelector("button"); btn.disabled = true; btn.textContent = "Looking up…";
+        document.getElementById("track-result").innerHTML = ui.loadingHtml("Looking up your request…");
+        try {
+          var res = await api.findByReference(form.reference.value.trim(), form.email.value.trim());
+          if (!res) {
+            ui.showAlert("#track-alert", "No request found with that reference and email. Please check and try again.", "danger");
+            document.getElementById("track-result").innerHTML = "";
+          } else {
+            ui.showAlert("#track-alert", "", "info");
+            var meta = ui.statusMeta(res.status);
+            document.getElementById("track-result").innerHTML =
+              '<div class="card"><div class="flex between mb-4"><div><strong>Reference</strong><div>' + ui.escapeHtml(res.reference) + "</div></div>" + ui.statusBadge(res.status) + "</div>" +
+              '<div class="table-wrap"><table><tbody>' +
+                "<tr><th>Asset</th><td>" + ui.escapeHtml(res.asset_title || "—") + "</td></tr>" +
+                "<tr><th>Category</th><td>" + ui.escapeHtml(ui.categoryLabel(res.category)) + "</td></tr>" +
+                "<tr><th>Location</th><td>" + ui.escapeHtml([res.town, res.lga, res.state].filter(Boolean).join(", ")) + "</td></tr>" +
+                "<tr><th>Submitted</th><td>" + ui.formatDate(res.created_at) + "</td></tr>" +
+                "<tr><th>Last updated</th><td>" + ui.formatDateTime(res.updated_at) + "</td></tr>" +
+              "</tbody></table></div>" +
+              '<p class="small muted mt-4 mb-0">For detailed progress, updates and reports, sign in to your <a href="dashboard.html">customer portal</a>.</p></div>';
+          }
+        } catch (err) {
+          ui.showAlert("#track-alert", "Something went wrong. Please try again later.", "danger");
+          document.getElementById("track-result").innerHTML = "";
+        } finally { btn.disabled = false; btn.textContent = "Track request"; }
+      });
+    });
+  </script>
+</body>
+</html>

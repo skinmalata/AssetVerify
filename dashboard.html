@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Customer Portal | AssetVerify Property Services</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/dashboard.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="dashboard">
+  <header data-site-header></header>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar__title">My account</div>
+      <a href="dashboard.html" class="active">My requests</a>
+      <a href="request.html">New request</a>
+      <a href="contact.html">Contact support</a>
+      <a href="#" data-action="signout">Sign out</a>
+    </aside>
+
+    <main class="app-main" id="main">
+      <div id="dash-alert"></div>
+      <div class="flex between mb-4">
+        <div>
+          <h1 class="mb-0" style="font-size:1.6rem">My verification requests</h1>
+          <p class="muted mb-0" id="welcome"></p>
+        </div>
+        <a href="request.html" class="btn btn--primary">New request</a>
+      </div>
+
+      <div id="requests-root"></div>
+      <div id="detail-root" class="mt-6 hidden"></div>
+    </main>
+  </div>
+
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async function () {
+      var api = AssetVerify.api, ui = AssetVerify.ui, cfg = AssetVerify.CONFIG;
+      await api.ready();
+      var user = ui.requireAuth();
+      if (!user) return;
+      if (api.isAdmin()) { location.href = "admin.html"; return; }
+      document.getElementById("welcome").textContent = "Signed in as " + (user.email || "");
+
+      var requests = [];
+      async function loadList() {
+        document.getElementById("requests-root").innerHTML = ui.loadingHtml("Loading your requests…");
+        try {
+          requests = await api.listMine();
+        } catch (e) { ui.showAlert("#dash-alert", "Unable to load your requests.", "danger"); return; }
+        if (!requests.length) {
+          document.getElementById("requests-root").innerHTML =
+            '<div class="card text-center"><h3>No requests yet</h3><p class="muted">When you submit a verification request it will appear here.</p><a class="btn btn--primary" href="request.html">Submit a request</a></div>';
+          return;
+        }
+        document.getElementById("requests-root").innerHTML =
+          '<div class="table-wrap"><table><thead><tr><th>Reference</th><th>Asset</th><th>Category</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody>' +
+          requests.map(function (r) {
+            return "<tr><td><strong>" + ui.escapeHtml(r.reference) + "</strong></td>" +
+              "<td>" + ui.escapeHtml(r.asset_title || "—") + "</td>" +
+              "<td>" + ui.escapeHtml(ui.categoryLabel(r.category)) + "</td>" +
+              "<td>" + ui.formatDate(r.created_at) + "</td>" +
+              "<td>" + ui.statusBadge(r.status) + "</td>" +
+              '<td><button class="btn btn--outline btn--sm" data-view="' + r.id + '">View</button></td></tr>';
+          }).join("") + "</tbody></table></div>";
+
+        document.querySelectorAll("[data-view]").forEach(function (b) {
+          b.addEventListener("click", function () { openDetail(b.getAttribute("data-view")); });
+        });
+      }
+
+      async function openDetail(id) {
+        var detail = document.getElementById("detail-root");
+        detail.classList.remove("hidden");
+        detail.innerHTML = ui.loadingHtml("Loading request…");
+        detail.scrollIntoView({ behavior: "smooth" });
+        try {
+          var bundle = await api.requestBundle(id);
+          renderDetail(bundle);
+        } catch (e) { ui.showAlert("#dash-alert", "Unable to load this request.", "danger"); }
+      }
+
+      function renderDetail(b) {
+        var r = b.request;
+        var pkg = (cfg.packages[r.category] || []).find(function (p) { return p.id === r.package_id; });
+        var detail = document.getElementById("detail-root");
+
+        var progress = (b.progress || []).map(function (p) {
+          return '<div class="alert alert--info" style="border-left-color:var(--teal-500)"><div class="small muted">' + ui.formatDateTime(p.created_at) + "</div>" + ui.escapeHtml(p.message) + "</div>";
+        }).join("") || '<p class="muted">No updates yet.</p>';
+
+        var docs = (b.documents || []).map(function (d) {
+          var link = d.signed_url ? '<a href="' + d.signed_url + '" target="_blank" rel="noopener">Download</a>' : '<span class="muted small">stored privately</span>';
+          return "<li>" + ui.escapeHtml(d.filename) + " <span class='small muted'>(" + ui.escapeHtml(typeLabel(d.doc_type)) + ")</span> — " + link + "</li>";
+        }).join("") || "<li class='muted'>No documents uploaded.</li>";
+
+        var payments = (b.payments || []).map(function (p) {
+          return "<tr><td>" + ui.formatMoney(p.amount) + "</td><td>" + ui.escapeHtml(p.method || "—") + "</td><td>" + ui.escapeHtml(p.reference || "—") + "</td><td>" +
+            '<span class="badge ' + (p.status === "confirmed" ? "badge--done" : "badge--progress") + '">' + ui.escapeHtml(p.status) + "</span></td></tr>";
+        }).join("") || "<tr><td colspan='4' class='muted'>No payments recorded.</td></tr>";
+
+        var reportBlock = b.report
+          ? '<div class="alert alert--success"><h3>Report available</h3><p>Your verification report is ready and has been released to you.</p><a class="btn btn--primary" href="report.html?id=' + r.id + '">View report</a></div>'
+          : '<p class="muted">Your report will appear here once completed and released.</p>';
+
+        detail.innerHTML =
+          '<div class="card"><div class="flex between mb-4"><div><h2 class="mb-0">' + ui.escapeHtml(r.reference) + "</h2><p class='muted mb-0'>" + ui.escapeHtml(r.asset_title || "") + "</p></div>" + ui.statusBadge(r.status) + "</div>" +
+            '<div class="grid grid--2"><div><h3>Agreed service</h3>' +
+              '<p>' + (pkg ? ui.escapeHtml(pkg.name) : "Custom quotation") + "</p>" +
+              '<div class="table-wrap"><table><tbody>' +
+                "<tr><th>Base fee</th><td>" + ui.formatMoney(r.base_fee) + "</td></tr>" +
+                "<tr><th>Professional fees</th><td>" + ui.formatMoney(r.professional_fees) + "</td></tr>" +
+                "<tr><th>Third-party charges</th><td>" + ui.formatMoney(r.third_party_fees) + "</td></tr>" +
+                "<tr><th>Total</th><td><strong>" + ui.formatMoney(r.total_fee) + "</strong></td></tr>" +
+              "</tbody></table></div></div>" +
+            "<div><h3>Request details</h3><ul class='mb-0'>" +
+              "<li><strong>Category:</strong> " + ui.escapeHtml(ui.categoryLabel(r.category)) + "</li>" +
+              "<li><strong>Location:</strong> " + ui.escapeHtml([r.address, r.town, r.lga, r.state].filter(Boolean).join(", ")) + "</li>" +
+              "<li><strong>Buying:</strong> " + ui.escapeHtml(r.buying_remote === "remotely" ? "Remotely" : "Locally") + "</li>" +
+              "<li><strong>Submitted:</strong> " + ui.formatDateTime(r.created_at) + "</li>" +
+            "</ul></div></div></div>" +
+
+          '<div class="grid grid--2 mt-6">' +
+            '<div class="card"><h3>Progress updates</h3>' + progress + "</div>" +
+            '<div class="card"><h3>Documents</h3><ul>' + docs + "</ul>" +
+              '<p class="small muted">If we need more documents we will request them here.</p></div>' +
+          "</div>" +
+
+          '<div class="grid grid--2 mt-6">' +
+            '<div class="card"><h3>Invoices &amp; payments</h3><div class="table-wrap"><table><thead><tr><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th></tr></thead><tbody>' + payments + "</tbody></table></div>' +
+              '<p class="small muted mt-4 mb-0">Bank transfer details are provided in your quotation. Payments are confirmed by our team.</p></div>' +
+            '<div class="card"><h3>Report</h3>' + reportBlock + "</div>" +
+          "</div>" +
+
+          '<div class="card mt-6"><h3>Contact support about this request</h3><div id="thread-' + r.id + '"></div>' +
+            '<form data-support="' + r.id + '" class="mt-4"><div class="field"><label for="msg-' + r.id + '">Message</label><textarea id="msg-' + r.id + '" required></textarea></div>' +
+            '<button class="btn btn--primary mt-3" type="submit">Send message</button></form></div>' +
+          '<div class="mt-4"><button class="btn btn--outline" id="close-detail">Close</button></div>';
+
+        renderThread(b);
+        document.getElementById("close-detail").addEventListener("click", function () {
+          detail.classList.add("hidden"); detail.innerHTML = "";
+        });
+        var sform = detail.querySelector("[data-support]");
+        sform.addEventListener("submit", async function (e) {
+          e.preventDefault();
+          var ta = sform.querySelector("textarea");
+          if (!ta.value.trim()) return;
+          var btn = sform.querySelector("button"); btn.disabled = true;
+          try {
+            await api.sendSupport(r.id, ta.value.trim());
+            ui.toast("Message sent.", "success");
+            var nb = await api.requestBundle(r.id); renderThread(nb); ta.value = "";
+          } catch (err) { ui.toast("Could not send message.", "danger"); }
+          finally { btn.disabled = false; }
+        });
+      }
+
+      function renderThread(b) {
+        var el = document.getElementById("thread-" + b.request.id);
+        if (!el) return;
+        el.innerHTML = (b.support || []).map(function (m) {
+          return '<div class="alert ' + (m.from_customer ? "alert--info" : "alert--success") + '">' +
+            '<div class="small muted">' + (m.from_customer ? "You" : "AssetVerify") + " · " + ui.formatDateTime(m.created_at) + "</div>" +
+            ui.escapeHtml(m.message) + "</div>";
+        }).join("") || '<p class="muted small">No messages yet.</p>';
+      }
+
+      function typeLabel(id) {
+        var t = cfg.documentTypes.find(function (x) { return x.id === id; });
+        return t ? t.label : (id || "document");
+      }
+
+      await loadList();
+      var openId = ui.qs("id");
+      if (openId) openDetail(openId);
+    });
+  </script>
+</body>
+</html>

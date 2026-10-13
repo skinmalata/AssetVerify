@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pricing | AssetVerify Property Services</title>
+  <meta name="description" content="Indicative verification pricing for land, houses, vehicles and equipment in Nigeria. Base fees plus separately stated professional and third-party charges.">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/pricing.html">
+  <meta property="og:title" content="Pricing | AssetVerify Property Services">
+  <meta property="og:description" content="Transparent, indicative verification pricing with separated fees.">
+  <meta property="og:url" content="https://your-username.github.io/assetverify/pricing.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="pricing">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section section--photo" style="background-image:url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1600&q=60')">
+      <div class="container">
+        <p class="eyebrow">Pricing</p>
+        <h1>Transparent, indicative pricing</h1>
+        <p class="lead" style="max-width:780px">Prices depend on the asset, location, and the checks you choose. The amounts below are <strong>placeholders</strong> to illustrate the structure and should be updated for your business.</p>
+        <div class="flex">
+          <span class="small muted">Display currency:</span>
+          <button class="btn btn--outline btn--sm" data-cur="NGN" id="cur-ngn">₦ Naira</button>
+          <button class="btn btn--outline btn--sm" data-cur="USD" id="cur-usd">$ USD (estimate)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="alert alert--info">
+          <h4>How our fees are structured</h4>
+          <ul class="mb-0">
+            <li><strong>Base fee</strong> — our own work: review, coordination, inspection and reporting.</li>
+            <li><strong>Professional fees</strong> — for qualified third parties such as surveyors, building inspectors or mechanics. Shown separately.</li>
+            <li><strong>Third-party charges</strong> — registry fees, search fees and similar disbursements. Shown separately and may change.</li>
+          </ul>
+        </div>
+        <div id="pricing-root"></div>
+        <div class="card mt-6">
+          <div class="flex between">
+            <div>
+              <h3 class="mb-0">Need something different?</h3>
+              <p class="mb-0 muted">Complex or unusual assets may need a custom scope and quote.</p>
+            </div>
+            <a href="request.html?custom=1" class="btn btn--gold">Request a custom quote</a>
+          </div>
+        </div>
+        <p class="small muted mt-6">These figures are indicative and not a binding quotation. Your actual quotation is issued after we review your request. Verification is an independent due-diligence service and not a guarantee of ownership or of any outcome.</p>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    (function () {
+      var cfg = AssetVerify.CONFIG, ui = AssetVerify.ui, currency = "NGN";
+      function render() {
+        var html = cfg.categories.map(function (c) {
+          var packs = cfg.packages[c.id] || [];
+          if (!packs.length) return "";
+          var cards = packs.map(function (p) {
+            var price = currency === "USD"
+              ? ui.formatMoney(ui.usdEstimate(p.baseFee), "USD") + ' <span class="small muted">est.</span>'
+              : ui.formatMoneyNaira(p.baseFee);
+            return '<article class="card card--hover">' +
+              "<h3>" + ui.escapeHtml(p.name) + "</h3>" +
+              '<div class="stat__value" style="font-size:1.5rem">' + price + "</div>" +
+              '<p class="small muted">Base fee · ' + ui.escapeHtml(p.days) + "</p>" +
+              "<ul>" + p.items.map(function (i) { return "<li>" + ui.escapeHtml(i) + "</li>"; }).join("") + "</ul>" +
+              '<a class="btn btn--outline btn--sm btn--block" href="request.html?category=' + c.id + "&package=" + p.id + '">Choose this</a>' +
+            "</article>";
+          }).join("");
+          return '<section class="mb-6" id="pricing-' + c.id + '">' +
+            '<h2>' + c.icon + " " + ui.escapeHtml(c.label) + "</h2>" +
+            '<div class="grid grid--3">' + cards + "</div>" +
+          "</section>";
+        }).join("");
+        document.getElementById("pricing-root").innerHTML = html;
+      }
+      document.addEventListener("DOMContentLoaded", function () {
+        render();
+        document.getElementById("cur-ngn").addEventListener("click", function () { currency = "NGN"; render(); toggle(this); });
+        document.getElementById("cur-usd").addEventListener("click", function () { currency = "USD"; render(); toggle(this); });
+        function toggle(btn) {
+          document.getElementById("cur-ngn").classList.toggle("btn--primary", btn.id === "cur-ngn");
+          document.getElementById("cur-usd").classList.toggle("btn--primary", btn.id === "cur-usd");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

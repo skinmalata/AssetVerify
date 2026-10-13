@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login | AssetVerify Property Services</title>
+  <meta name="description" content="Sign in to your AssetVerify account to track verification requests and access reports securely.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/login.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="login">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section">
+      <div class="container" style="max-width:460px">
+        <h1 class="text-center">Sign in</h1>
+        <p class="text-center muted">Access your verification requests and reports.</p>
+        <div class="card">
+          <div id="auth-alert"></div>
+          <form id="login-form" novalidate>
+            <div class="field mb-4">
+              <label for="email">Email address <span class="req">*</span></label>
+              <input type="email" id="email" name="email" required autocomplete="email">
+              <span class="error-text"></span>
+            </div>
+            <div class="field mb-4">
+              <label for="password">Password <span class="req">*</span></label>
+              <input type="password" id="password" name="password" required autocomplete="current-password">
+              <span class="error-text"></span>
+            </div>
+            <div class="flex between mb-4">
+              <label class="checkbox" style="padding:0;border:0;gap:.5rem">
+                <input type="checkbox" id="remember"> <span class="small">Remember me</span>
+              </label>
+              <a href="reset-password.html" class="small">Forgot password?</a>
+            </div>
+            <button type="submit" class="btn btn--primary btn--block">Sign in</button>
+          </form>
+          <p class="text-center mt-4 mb-0">Don't have an account? <a href="register.html">Create one</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var api = AssetVerify.api, ui = AssetVerify.ui;
+      var form = document.getElementById("login-form");
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (!ui.validateRequired(form)) { ui.showAlert("#auth-alert", "Please complete all fields.", "danger"); return; }
+        var btn = form.querySelector("button[type=submit]");
+        btn.disabled = true; btn.textContent = "Signing in…";
+        try {
+          await api.auth.signIn(form.email.value.trim(), form.password.value);
+          var next = ui.qs("next");
+          var user = api.getUser();
+          var dest = next || (api.isAdmin() ? "admin.html" : "dashboard.html");
+          ui.toast("Signed in successfully.", "success");
+          location.href = dest;
+        } catch (err) {
+          ui.showAlert("#auth-alert", err.message || "Unable to sign in.", "danger");
+          btn.disabled = false; btn.textContent = "Sign in";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

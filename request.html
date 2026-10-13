@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Submit a Verification Request | AssetVerify Property Services</title>
+  <meta name="description" content="Submit a property or asset verification request online. Upload documents securely and receive a unique reference number immediately.">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/request.html">
+  <meta property="og:title" content="Submit a Verification Request | AssetVerify">
+  <meta property="og:description" content="Start your property or asset verification request online.">
+  <meta property="og:url" content="https://your-username.github.io/assetverify/request.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="request">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section section--grey section--tight">
+      <div class="container">
+        <p class="eyebrow">Verification Request</p>
+        <h1>Submit a verification request</h1>
+        <p class="lead" style="max-width:760px">Complete the steps below. Your information is handled confidentially and uploaded documents are stored securely and privately.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container" style="max-width:900px">
+        <!-- Progress stepper -->
+        <ol class="stepper" id="stepper" aria-label="Form progress">
+          <li class="stepper__item active" data-step="1">Your details</li>
+          <li class="stepper__item" data-step="2">Asset details</li>
+          <li class="stepper__item" data-step="3">Checks needed</li>
+          <li class="stepper__item" data-step="4">Documents</li>
+          <li class="stepper__item" data-step="5">Service &amp; price</li>
+          <li class="stepper__item" data-step="6">Review</li>
+        </ol>
+
+        <div id="form-alert"></div>
+
+        <form id="request-form" novalidate>
+          <!-- STEP 1: Customer details -->
+          <fieldset class="form-step active" data-step="1">
+            <legend class="sr-only">Your details</legend>
+            <h2>Your details</h2>
+            <div class="form-grid">
+              <div class="field">
+                <label for="customer_name">Full name <span class="req">*</span></label>
+                <input type="text" id="customer_name" name="customer_name" required autocomplete="name">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="email">Email address <span class="req">*</span></label>
+                <input type="email" id="email" name="email" required autocomplete="email">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="phone">Phone number (with country code) <span class="req">*</span></label>
+                <input type="tel" id="phone" name="phone" required placeholder="+234…" autocomplete="tel">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="preferred_contact">Preferred contact method <span class="req">*</span></label>
+                <select id="preferred_contact" name="preferred_contact" required>
+                  <option value="email">Email</option>
+                  <option value="phone">Phone call</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="country">Country of residence <span class="req">*</span></label>
+                <input type="text" id="country" name="country" required autocomplete="country-name">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="buying_remote">Are you buying locally or remotely? <span class="req">*</span></label>
+                <select id="buying_remote" name="buying_remote" required>
+                  <option value="locally">Locally (I can visit)</option>
+                  <option value="remotely">Remotely (I am abroad / cannot visit)</option>
+                </select>
+                <span class="error-text"></span>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- STEP 2: Asset details -->
+          <fieldset class="form-step" data-step="2">
+            <legend class="sr-only">Asset details</legend>
+            <h2>Asset details</h2>
+            <div class="form-grid">
+              <div class="field form-grid--full">
+                <label for="category">Asset category <span class="req">*</span></label>
+                <select id="category" name="category" required></select>
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="asset_title">Property or asset title / name <span class="req">*</span></label>
+                <input type="text" id="asset_title" name="asset_title" required placeholder="e.g. 3-bedroom bungalow, Old GRA">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="state">State <span class="req">*</span></label>
+                <input type="text" id="state" name="state" required value="Rivers">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="lga">Local Government Area <span class="req">*</span></label>
+                <input type="text" id="lga" name="lga" required>
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="town">Town / neighbourhood</label>
+                <input type="text" id="town" name="town">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="address">Street address / location description <span class="req">*</span></label>
+                <input type="text" id="address" name="address" required>
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="gps">GPS coordinates <span class="muted small">(optional)</span></label>
+                <input type="text" id="gps" name="gps" placeholder="e.g. 4.8156, 7.0498">
+                <span class="hint"><a href="https://www.openstreetmap.org" target="_blank" rel="noopener">Find coordinates on OpenStreetMap</a></span>
+              </div>
+              <div class="field">
+                <label for="asking_price">Asking price</label>
+                <input type="number" id="asking_price" name="asking_price" min="0" step="1000" placeholder="e.g. 15000000">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="currency">Currency</label>
+                <select id="currency" name="currency">
+                  <option value="NGN">NGN — Nigerian Naira (₦)</option>
+                  <option value="USD">USD — US Dollar ($)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="seller_contact">Seller / agent contact <span class="muted small">(if available)</span></label>
+                <input type="text" id="seller_contact" name="seller_contact" placeholder="Name and phone">
+              </div>
+              <div class="field">
+                <label for="intended_purchase_date">Intended purchase date <span class="muted small">(if known)</span></label>
+                <input type="date" id="intended_purchase_date" name="intended_purchase_date">
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- STEP 3: Checks -->
+          <fieldset class="form-step" data-step="3">
+            <legend class="sr-only">Verification requirements</legend>
+            <h2>Which checks do you need?</h2>
+            <p class="muted">Select the checks that matter to you. We will confirm what is possible for your location.</p>
+            <div id="checks-root" class="stack"></div>
+            <span class="error-text" id="checks-error"></span>
+          </fieldset>
+
+          <!-- STEP 4: Documents -->
+          <fieldset class="form-step" data-step="4">
+            <legend class="sr-only">Document upload</legend>
+            <h2>Upload documents</h2>
+            <p class="muted">Upload any relevant documents you have. This helps us understand what is already available. You can also provide documents later.</p>
+            <div class="alert alert--info">
+              <h4 class="mb-2">Why we ask for documents</h4>
+              <p class="mb-0 small">Ownership and identity documents let us see exactly what you have been shown, spot discrepancies early and plan the right checks. Files are stored privately and never made public. You can choose not to upload now and provide them later.</p>
+            </div>
+            <div class="field">
+              <label for="files">Add documents <span class="muted small">(PDF, JPG, PNG, WEBP — up to 8 files, 10MB each)</span></label>
+              <input type="file" id="files" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,.webp">
+            </div>
+            <div id="file-list" class="stack mt-4"></div>
+            <div class="field mt-4">
+              <label class="checkbox">
+                <input type="checkbox" id="consent_processing" name="consent_processing" required>
+                <span>I consent to AssetVerify processing the documents and information I provide for the purpose of this verification. I confirm I have the right to share them. <span class="req">*</span></span>
+              </label>
+              <span class="error-text"></span>
+            </div>
+          </fieldset>
+
+          <!-- STEP 5: Service & pricing -->
+          <fieldset class="form-step" data-step="5">
+            <legend class="sr-only">Service and pricing</legend>
+            <h2>Choose your service package</h2>
+            <div id="packages-root" class="grid grid--3"></div>
+            <div class="field mt-4">
+              <label class="checkbox">
+                <input type="checkbox" id="custom_quote" name="custom_quote">
+                <span>I would like a custom quote (my asset is complex or does not fit the packages above).</span>
+              </label>
+            </div>
+            <div id="price-summary" class="card mt-4"></div>
+            <div class="field mt-4">
+              <label class="checkbox">
+                <input type="checkbox" id="terms_accepted" name="terms_accepted" required>
+                <span>I accept the <a href="terms.html" target="_blank">Terms of Service</a> and I understand that verification reduces risk but does not guarantee ownership or eliminate fraud. <span class="req">*</span></span>
+              </label>
+              <span class="error-text"></span>
+            </div>
+          </fieldset>
+
+          <!-- STEP 6: Review -->
+          <fieldset class="form-step" data-step="6">
+            <legend class="sr-only">Review and submit</legend>
+            <h2>Review your request</h2>
+            <p class="muted">Please check the details below before submitting.</p>
+            <div id="review-root"></div>
+          </fieldset>
+
+          <div class="form-nav">
+            <button type="button" class="btn btn--outline" id="btn-prev">Back</button>
+            <div class="flex">
+              <button type="button" class="btn btn--primary" id="btn-next">Continue</button>
+              <button type="submit" class="btn btn--gold hidden" id="btn-submit">Submit request</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Confirmation -->
+        <div id="confirmation" class="card hidden"></div>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script src="assets/js/request-form.js"></script>
+</body>
+</html>

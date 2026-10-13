@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create an Account | AssetVerify Property Services</title>
+  <meta name="description" content="Register for a AssetVerify account to submit and track verification requests and access reports securely.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/register.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="register">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section">
+      <div class="container" style="max-width:520px">
+        <h1 class="text-center">Create your account</h1>
+        <p class="text-center muted">You can also submit a request without an account, but an account lets you track everything in one place.</p>
+        <div class="card">
+          <div id="auth-alert"></div>
+          <form id="register-form" novalidate>
+            <div class="field mb-4">
+              <label for="full_name">Full name <span class="req">*</span></label>
+              <input type="text" id="full_name" name="full_name" required autocomplete="name">
+              <span class="error-text"></span>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="email">Email address <span class="req">*</span></label>
+                <input type="email" id="email" name="email" required autocomplete="email">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="phone">Phone (with country code) <span class="req">*</span></label>
+                <input type="tel" id="phone" name="phone" required placeholder="+234…" autocomplete="tel">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="country">Country of residence <span class="req">*</span></label>
+                <input type="text" id="country" name="country" required autocomplete="country-name">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="password">Password <span class="req">*</span></label>
+                <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+                <span class="hint">At least 8 characters.</span>
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="password2">Confirm password <span class="req">*</span></label>
+                <input type="password" id="password2" name="password2" required autocomplete="new-password">
+                <span class="error-text"></span>
+              </div>
+            </div>
+            <div class="field mt-4">
+              <label class="checkbox">
+                <input type="checkbox" id="consent" name="consent" required>
+                <span>I have read and accept the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>. <span class="req">*</span></span>
+              </label>
+              <span class="error-text"></span>
+            </div>
+            <button type="submit" class="btn btn--primary btn--block mt-4">Create account</button>
+          </form>
+          <p class="text-center mt-4 mb-0">Already registered? <a href="login.html">Sign in</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var api = AssetVerify.api, ui = AssetVerify.ui;
+      var form = document.getElementById("register-form");
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        if (!ui.validateRequired(form)) { ui.showAlert("#auth-alert", "Please correct the highlighted fields.", "danger"); return; }
+        if (form.password.value.length < 8) { ui.setFieldError(form.password, "Use at least 8 characters."); return; }
+        if (form.password.value !== form.password2.value) { ui.setFieldError(form.password2, "Passwords do not match."); return; }
+        var btn = form.querySelector("button[type=submit]");
+        btn.disabled = true; btn.textContent = "Creating account…";
+        try {
+          await api.auth.signUp(form.email.value.trim(), form.password.value, {
+            full_name: form.full_name.value.trim(), phone: form.phone.value.trim(), country: form.country.value.trim()
+          });
+          if (api.isLive()) {
+            ui.showAlertRaw("#auth-alert", "Account created. Please check your email to verify your address, then sign in.", "success");
+            form.reset();
+            btn.disabled = false; btn.textContent = "Create account";
+          } else {
+            ui.toast("Account created. Redirecting…", "success");
+            location.href = "dashboard.html";
+          }
+        } catch (err) {
+          ui.showAlert("#auth-alert", err.message || "Unable to create account.", "danger");
+          btn.disabled = false; btn.textContent = "Create account";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

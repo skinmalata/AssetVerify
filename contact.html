@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact Us | AssetVerify Property Services, Port Harcourt</title>
+  <meta name="description" content="Contact AssetVerify Property Services in Port Harcourt, Rivers State for property and asset verification enquiries.">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/contact.html">
+  <meta property="og:title" content="Contact AssetVerify Property Services">
+  <meta property="og:description" content="Get in touch about property and asset verification in Nigeria.">
+  <meta property="og:url" content="https://your-username.github.io/assetverify/contact.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="contact">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section section--photo" style="background-image:url('https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1600&q=60')">
+      <div class="container">
+        <p class="eyebrow">Contact Us</p>
+        <h1>Get in touch</h1>
+        <p class="lead" style="max-width:720px">Questions about a request, coverage or pricing? Send us a message and we will respond during working hours.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container grid grid--2" style="align-items:start">
+        <div class="card">
+          <h2>Send a message</h2>
+          <div id="contact-alert"></div>
+          <form id="contact-form" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label for="c-name">Full name <span class="req">*</span></label>
+                <input type="text" id="c-name" name="name" required autocomplete="name">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="c-email">Email address <span class="req">*</span></label>
+                <input type="email" id="c-email" name="email" required autocomplete="email">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="c-phone">Phone number</label>
+                <input type="tel" id="c-phone" name="phone" autocomplete="tel" placeholder="+234…">
+                <span class="error-text"></span>
+              </div>
+              <div class="field">
+                <label for="c-subject">Subject <span class="req">*</span></label>
+                <select id="c-subject" name="subject" required>
+                  <option value="">Select…</option>
+                  <option>General enquiry</option>
+                  <option>Existing request</option>
+                  <option>Pricing / quote</option>
+                  <option>Coverage question</option>
+                  <option>Feedback or complaint</option>
+                </select>
+                <span class="error-text"></span>
+              </div>
+              <div class="field form-grid--full">
+                <label for="c-message">Message <span class="req">*</span></label>
+                <textarea id="c-message" name="message" required></textarea>
+                <span class="error-text"></span>
+              </div>
+              <div class="field form-grid--full">
+                <label class="checkbox">
+                  <input type="checkbox" id="c-consent" name="consent" required>
+                  <span>I consent to AssetVerify processing my information to respond to this enquiry. See the <a href="privacy.html">Privacy Policy</a>. <span class="req">*</span></span>
+                </label>
+                <span class="error-text"></span>
+              </div>
+            </div>
+            <button type="submit" class="btn btn--primary mt-4">Send message</button>
+          </form>
+        </div>
+
+        <aside class="stack">
+          <div class="card">
+            <h3>Contact details</h3>
+            <ul class="mb-0" id="contact-details"></ul>
+          </div>
+          <div class="card">
+            <h3>Where we work</h3>
+            <p class="mb-0">Based in Port Harcourt, Rivers State. We currently serve Rivers State and plan to expand across Nigeria. We will confirm coverage when you contact us.</p>
+          </div>
+          <div class="card">
+            <h3>Office location (Port Harcourt)</h3>
+            <div id="map" style="height:280px;border-radius:var(--radius);overflow:hidden;background:var(--grey-100);display:grid;place-items:center;text-align:center">
+              <div>
+                <p class="mb-2 muted">Interactive OpenStreetMap map.</p>
+                <a id="map-link" class="btn btn--outline btn--sm" target="_blank" rel="noopener">Open in OpenStreetMap</a>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var c = AssetVerify.CONFIG, ui = AssetVerify.ui, api = AssetVerify.api;
+      var b = c.brand;
+      document.getElementById("contact-details").innerHTML =
+        "<li><strong>Email:</strong> <a href='mailto:" + b.email + "'>" + ui.escapeHtml(b.email) + "</a></li>" +
+        "<li><strong>Phone:</strong> <a href='tel:" + b.phone.replace(/\s/g, "") + "'>" + ui.escapeHtml(b.phone) + "</a></li>" +
+        "<li><strong>Address:</strong> " + ui.escapeHtml(b.address) + "</li>" +
+        "<li><strong>Hours:</strong> " + ui.escapeHtml(b.hours) + "</li>";
+
+      var lat = c.map.centreLat, lng = c.map.centreLng, z = c.map.zoom;
+      document.getElementById("map-link").href =
+        "https://www.openstreetmap.org/#map=" + z + "/" + lat + "/" + lng;
+
+      var form = document.getElementById("contact-form");
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        var inputs = form.querySelectorAll("[required]");
+        if (!ui.validateRequired(form, inputs)) {
+          ui.showAlert("#contact-alert", "Please correct the highlighted fields.", "danger");
+          return;
+        }
+        var data = ui.serialize(form);
+        var btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = "Sending…";
+        try {
+          if (api.isLive() && window.supabase) {
+            var sb = window.supabase.createClient(c.supabase.url, c.supabase.anonKey);
+            await sb.functions.invoke("send-email", { body: { template: "contact", message: data } }).catch(function () {});
+          } else {
+            await new Promise(function (r) { setTimeout(r, 500); });
+          }
+          ui.showAlertRaw("#contact-alert",
+            "<strong>Thank you.</strong> Your message has been received. We will respond during working hours.", "success");
+          form.reset();
+        } catch (err) {
+          ui.showAlert("#contact-alert", "Sorry, something went wrong. Please email us directly at " + b.email + ".", "danger");
+        } finally {
+          btn.disabled = false; btn.textContent = "Send message";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

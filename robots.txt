@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /admin.html
+Disallow: /report.html
+Disallow: /assets/
+
+Sitemap: https://your-username.github.io/assetverify/sitemap.xml

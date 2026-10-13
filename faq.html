@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Frequently Asked Questions | AssetVerify Property Services</title>
+  <meta name="description" content="Answers to common questions about property and asset verification in Nigeria, including scope, timelines, pricing, data protection and limitations.">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/faq.html">
+  <meta property="og:title" content="FAQ | AssetVerify Property Services">
+  <meta property="og:description" content="Common questions about property verification in Nigeria.">
+  <meta property="og:url" content="https://your-username.github.io/assetverify/faq.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script type="application/ld+json">
+  { "@context":"https://schema.org", "@type":"FAQPage", "mainEntity": [] }
+  </script>
+</head>
+<body data-page="faq">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section section--photo" style="background-image:url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=60')">
+      <div class="container" style="max-width:820px">
+        <p class="eyebrow">FAQ</p>
+        <h1>Frequently asked questions</h1>
+        <p class="lead">If your question is not answered here, please <a href="contact.html">contact us</a>.</p>
+        <div class="field mt-4">
+          <label for="faq-search" class="sr-only">Search questions</label>
+          <input type="search" id="faq-search" placeholder="Search questions…" aria-label="Search questions">
+        </div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container" style="max-width:820px">
+        <div id="faq-list" class="stack"></div>
+        <p id="faq-empty" class="hidden text-center muted">No questions match your search.</p>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script src="assets/js/faq-data.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var ui = AssetVerify.ui, FAQ = AssetVerify.FAQ;
+      var list = document.getElementById("faq-list");
+      var empty = document.getElementById("faq-empty");
+      function render(filter) {
+        filter = (filter || "").toLowerCase();
+        var items = FAQ.filter(function (f) {
+          return !filter || (f.q + " " + f.a).toLowerCase().indexOf(filter) !== -1;
+        });
+        empty.classList.toggle("hidden", items.length !== 0);
+        list.innerHTML = items.map(function (item) {
+          return '<details class="card"><summary style="cursor:pointer;font-weight:700;color:var(--navy-900)">' +
+            ui.escapeHtml(item.q) + "</summary><div style='margin-top:var(--space-3)'>" + item.a + "</div></details>";
+        }).join("");
+      }
+      render("");
+      document.getElementById("faq-search").addEventListener("input", function (e) { render(e.target.value); });
+
+      // FAQ structured data (only genuine Q&A already shown)
+      var ld = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.slice(0, 10).map(function (f) {
+        return { "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a.replace(/<[^>]+>/g, "") } };
+      }) };
+      var script = document.querySelector('script[type="application/ld+json"]');
+      if (script) script.textContent = JSON.stringify(ld);
+    });
+  </script>
+</body>
+</html>

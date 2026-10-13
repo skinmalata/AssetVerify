@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verification Report | AssetVerify Property Services</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/report.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="report">
+  <header data-site-header></header>
+  <main id="main">
+    <section class="section">
+      <div class="container" style="max-width:900px">
+        <div class="no-print flex between mb-4">
+          <a href="dashboard.html" class="btn btn--outline btn--sm">← Back</a>
+          <div class="flex">
+            <button class="btn btn--primary btn--sm" id="print-btn" type="button">Print / Save as PDF</button>
+          </div>
+        </div>
+        <div id="report-alert"></div>
+        <div id="report-root" class="print-report"></div>
+      </div>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async function () {
+      var api = AssetVerify.api, ui = AssetVerify.ui, cfg = AssetVerify.CONFIG, b = cfg.brand;
+      document.getElementById("print-btn").addEventListener("click", function () { window.print(); });
+
+      await api.ready();
+      var user = api.getUser();
+      var id = ui.qs("id");
+      var root = document.getElementById("report-root");
+
+      if (!id) { ui.showAlert("#report-alert", "No report specified.", "danger"); return; }
+      root.innerHTML = ui.loadingHtml("Loading report…");
+
+      var bundle;
+      try {
+        bundle = (api.isAdmin() ? await api.admin.getBundle(id) : await api.requestBundle(id));
+      } catch (e) {
+        ui.showAlert("#report-alert", "You are not authorised to view this report, or it could not be loaded.", "danger");
+        root.innerHTML = ""; return;
+      }
+      var r = bundle.request;
+      if (!r) { ui.showAlert("#report-alert", "Report not found or not released to you.", "danger"); root.innerHTML = ""; return; }
+
+      // Owners may only view released reports; admins may preview any.
+      var rep = bundle.report;
+      if (!rep && !api.isAdmin()) {
+        ui.showAlert("#report-alert", "This report has not been released to you yet.", "warning");
+        root.innerHTML = ""; return;
+      }
+      rep = rep || {};
+
+      var pkg = (cfg.packages[r.category] || []).find(function (p) { return p.id === r.package_id; });
+      var checkLabels = (r.checks || []).map(function (cid) {
+        var c = (cfg.checksByCategory[r.category] || []).find(function (x) { return x.id === cid; });
+        return c ? c.label : cid;
+      });
+      var risk = ui.riskMeta(rep.risk_level);
+
+      function section(title, body) {
+        if (!body) return "";
+        return '<section class="report-section" style="margin-top:var(--space-5)"><h3>' + title + "</h3>" +
+          (/<[a-z]/.test(body) ? body : "<p>" + ui.escapeHtml(body).replace(/\n/g, "<br>") + "</p>") + "</section>";
+      }
+      function kv(k, v) { return "<tr><th style='width:34%'>" + k + "</th><td>" + (v || "—") + "</td></tr>"; }
+
+      root.innerHTML =
+        '<div class="card">' +
+          '<div class="flex between mb-4">' +
+            "<div><strong style='font-size:1.2rem'>" + ui.escapeHtml(b.name) + "</strong><br>" +
+              "<span class='small muted'>" + ui.escapeHtml(b.address) + " · " + ui.escapeHtml(b.email) + " · " + ui.escapeHtml(b.phone) + "</span></div>" +
+            '<div style="text-align:right"><strong>Verification Report</strong><br><span class="small muted">' + (risk ? ui.escapeHtml(risk.label) : "Risk not set") + "</span></div>" +
+          "</div>" +
+          (api.isAdmin() && !rep.published ? '<div class="alert alert--warning no-print">Draft preview — this report has not been published to the customer.</div>' : "") +
+          '<div class="alert alert--warning"><strong>Important:</strong> This is a private due-diligence report. It is not a legal opinion, not a government certificate, and not a guarantee of ownership. It records the checks completed and the risk identified on that basis only.</div>' +
+
+          '<div class="table-wrap"><table><tbody>' +
+            kv("Report reference", ui.escapeHtml(rep.reference || r.reference)) +
+            kv("Date of issue", ui.formatDate(rep.issued_at || r.updated_at)) +
+            kv("Report version", rep.version ? ("v" + rep.version) : "—") +
+            kv("Prepared for", ui.escapeHtml(r.customer_name || "")) +
+            kv("Asset category", ui.escapeHtml(ui.categoryLabel(r.category))) +
+            kv("Asset description", ui.escapeHtml(r.asset_title || "")) +
+            kv("Location", ui.escapeHtml([r.address, r.town, r.lga, r.state].filter(Boolean).join(", "))) +
+            (r.gps ? kv("GPS coordinates", ui.escapeHtml(r.gps)) : "") +
+            kv("Customer's stated objective", "Independent verification before purchase (" + ui.escapeHtml(r.buying_remote === "remotely" ? "remote buyer" : "local buyer") + ")") +
+            kv("Checks requested", ui.escapeHtml(checkLabels.join(", "))) +
+            kv("Service package", pkg ? ui.escapeHtml(pkg.name) : "Custom scope") +
+          "</tbody></table></div>" +
+
+          section("Documents received", rep.documents_received) +
+          section("Checks performed", rep.checks_performed) +
+          section("Findings and discrepancies", rep.findings) +
+          section("Unresolved issues", rep.unresolved) +
+          section("Limitations of the investigation", rep.limitations || "This verification is a private due-diligence exercise and is not a legal opinion. Findings depend on the documents supplied and access granted.") +
+          section("Risk assessment", (risk ? "<p>" + ui.escapeHtml(risk.label) + "</p>" : "") + (rep.summary ? "<p>" + ui.escapeHtml(rep.summary) + "</p>" : "")) +
+          section("Recommended next steps", rep.next_steps) +
+          section("Contributors", rep.contributors) +
+          section("Reviewer and approval", rep.reviewer) +
+
+          '<p class="small muted mt-6">End of report. Risk categories describe identified risk based on the checks completed and must not be represented as proof of ownership or a guarantee that fraud is impossible.</p>' +
+        "</div>";
+    });
+  </script>
+</body>
+</html>

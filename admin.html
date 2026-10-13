@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en-NG">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard | AssetVerify Property Services</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://your-username.github.io/assetverify/admin.html">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="admin">
+  <header data-site-header></header>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar__title">Administration</div>
+      <a href="#overview" class="active" data-nav>Overview</a>
+      <a href="#requests" data-nav>Requests</a>
+      <a href="#audit" data-nav>Audit log</a>
+      <a href="request.html">New request</a>
+      <a href="#" data-action="signout">Sign out</a>
+    </aside>
+
+    <main class="app-main" id="main">
+      <div id="admin-alert"></div>
+
+      <section id="overview">
+        <h1 style="font-size:1.6rem">Dashboard overview</h1>
+        <div class="stat-grid" id="stats-root"></div>
+        <div class="card mt-6">
+          <div class="flex between">
+            <div><h3 class="mb-0">Revenue &amp; outstanding</h3><p class="muted mb-0">Based on recorded payments and request totals.</p></div>
+            <div id="money-root"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="requests" class="mt-6">
+        <h2 style="font-size:1.4rem">Requests</h2>
+        <div class="toolbar">
+          <div class="field"><label for="f-q">Search</label><input type="search" id="f-q" placeholder="Reference, name, location…"></div>
+          <div class="field"><label for="f-status">Status</label><select id="f-status"></select></div>
+          <div class="field"><label for="f-cat">Category</label><select id="f-cat"></select></div>
+          <button class="btn btn--outline" id="f-clear" type="button">Clear</button>
+        </div>
+        <div id="table-root"></div>
+      </section>
+
+      <section id="detail" class="mt-6 hidden"></section>
+
+      <section id="audit" class="mt-6">
+        <h2 style="font-size:1.4rem">Audit log</h2>
+        <div id="audit-root"></div>
+      </section>
+    </main>
+  </div>
+
+  <footer data-site-footer></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/demo-data.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/common.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async function () {
+      var api = AssetVerify.api, ui = AssetVerify.ui, cfg = AssetVerify.CONFIG;
+      await api.ready();
+      var user = ui.requireAdmin();
+      if (!user) return;
+
+      // filters
+      document.getElementById("f-status").innerHTML = '<option value="">All statuses</option>' + cfg.statuses.map(function (s) { return '<option value="' + s.id + '">' + ui.escapeHtml(s.label) + "</option>"; }).join("");
+      document.getElementById("f-cat").innerHTML = '<option value="">All categories</option>' + cfg.categories.map(function (c) { return '<option value="' + c.id + '">' + ui.escapeHtml(c.label) + "</option>"; }).join("");
+      ["f-q", "f-status", "f-cat"].forEach(function (id) { document.getElementById(id).addEventListener("input", loadTable); });
+      document.getElementById("f-clear").addEventListener("click", function () {
+        document.getElementById("f-q").value = ""; document.getElementById("f-status").value = ""; document.getElementById("f-cat").value = ""; loadTable();
+      });
+
+      async function loadStats() {
+        try {
+          var s = await api.admin.stats();
+          document.getElementById("stats-root").innerHTML = [
+            ["Total requests", s.total], ["New / review", s.new], ["Awaiting documents", s.awaiting_documents],
+            ["In progress", s.in_progress], ["Completed", s.completed], ["Cancelled", s.cancelled]
+          ].map(function (pair) {
+            return '<div class="stat"><div class="stat__value">' + pair[1] + '</div><div class="stat__label">' + pair[0] + "</div></div>";
+          }).join("");
+          document.getElementById("money-root").innerHTML =
+            '<div class="stat"><div class="stat__value">' + ui.formatMoneyNaira(s.revenue) + '</div><div class="stat__label">Confirmed revenue</div></div>' +
+            '<div class="stat mt-2"><div class="stat__value">' + ui.formatMoneyNaira(s.outstanding) + '</div><div class="stat__label">Outstanding / pending</div></div>';
+        } catch (e) { ui.showAlert("#admin-alert", "Unable to load statistics.", "danger"); }
+      }
+
+      async function loadTable() {
+        var filters = { q: document.getElementById("f-q").value.trim(), status: document.getElementById("f-status").value, category: document.getElementById("f-cat").value };
+        document.getElementById("table-root").innerHTML = ui.loadingHtml("Loading requests…");
+        try {
+          var rows = await api.admin.list(filters);
+          if (!rows.length) { document.getElementById("table-root").innerHTML = '<p class="muted">No requests match your filters.</p>'; return; }
+          document.getElementById("table-root").innerHTML =
+            '<div class="table-wrap"><table><thead><tr><th>Reference</th><th>Customer</th><th>Asset</th><th>Category</th><th>Location</th><th>Fee</th><th>Status</th><th></th></tr></thead><tbody>' +
+            rows.map(function (r) {
+              return "<tr><td><strong>" + ui.escapeHtml(r.reference) + "</strong><br><span class='small muted'>" + ui.formatDate(r.created_at) + "</span></td>" +
+                "<td>" + ui.escapeHtml(r.customer_name || "—") + "<br><span class='small muted'>" + ui.escapeHtml(r.email || "") + "</span></td>" +
+                "<td>" + ui.escapeHtml(r.asset_title || "—") + "</td>" +
+                "<td>" + ui.escapeHtml(ui.categoryLabel(r.category)) + "</td>" +
+                "<td>" + ui.escapeHtml([r.town, r.lga, r.state].filter(Boolean).join(", ")) + "</td>" +
+                "<td>" + ui.formatMoneyNaira(r.total_fee) + "</td>" +
+                "<td>" + ui.statusBadge(r.status) + "</td>" +
+                '<td><button class="btn btn--outline btn--sm" data-open="' + r.id + '">Open</button></td></tr>';
+            }).join("") + "</tbody></table></div>";
+          document.querySelectorAll("[data-open]").forEach(function (b) {
+            b.addEventListener("click", function () { openDetail(b.getAttribute("data-open")); });
+          });
+        } catch (e) { ui.showAlert("#admin-alert", "Unable to load requests.", "danger"); }
+      }
+
+      async function loadAudit() {
+        try {
+          var rows = await api.admin.audit();
+          document.getElementById("audit-root").innerHTML = rows.length
+            ? '<div class="table-wrap"><table><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th>Detail</th></tr></thead><tbody>' +
+              rows.map(function (a) {
+                return "<tr><td>" + ui.formatDateTime(a.created_at) + "</td><td>" + ui.escapeHtml(a.actor || "—") + "</td><td>" + ui.escapeHtml(a.action) + "</td><td>" + ui.escapeHtml(a.entity) + "</td><td>" + ui.escapeHtml(a.detail || "") + "</td></tr>";
+              }).join("") + "</tbody></table></div>"
+            : '<p class="muted">No audit records yet.</p>';
+        } catch (e) { ui.showAlert("#admin-alert", "Unable to load audit log.", "danger"); }
+      }
+
+      async function openDetail(id) {
+        var el = document.getElementById("detail");
+        el.classList.remove("hidden");
+        el.innerHTML = ui.loadingHtml("Loading request…");
+        el.scrollIntoView({ behavior: "smooth" });
+        try {
+          var b = await api.admin.getBundle(id);
+          renderAdminDetail(b);
+        } catch (e) { ui.showAlert("#admin-alert", "Unable to load request detail.", "danger"); }
+      }
+
+      function renderAdminDetail(b) {
+        var r = b.request, el = document.getElementById("detail");
+
+        var docs = (b.documents || []).map(function (d) {
+          var link = d.signed_url ? '<a href="' + d.signed_url + '" target="_blank" rel="noopener">Open</a>' : '<span class="muted small">no preview</span>';
+          return "<li>" + ui.escapeHtml(d.filename) + " <span class='small muted'>(" + ui.escapeHtml(typeLabel(d.doc_type)) + ")</span> — " + link + "</li>";
+        }).join("") || "<li class='muted'>None</li>";
+
+        var progress = (b.progress || []).map(function (p) {
+          return '<li><span class="small muted">' + ui.formatDateTime(p.created_at) + (p.visible_to_customer ? " · customer-visible" : " · internal") + "</span><br>" + ui.escapeHtml(p.message) + "</li>";
+        }).join("") || "<li class='muted'>None</li>";
+
+        var payments = (b.payments || []).map(function (p) {
+          return "<tr><td>" + ui.formatMoney(p.amount) + "</td><td>" + ui.escapeHtml(p.method || "—") + "</td><td>" + ui.escapeHtml(p.reference || "—") + "</td><td>" + ui.escapeHtml(p.status) + "</td></tr>";
+        }).join("") || "<tr><td colspan=4 class='muted'>None</td></tr>";
+
+        var statusOpts = cfg.statuses.map(function (s) { return '<option value="' + s.id + '"' + (r.status === s.id ? " selected" : "") + ">" + ui.escapeHtml(s.label) + "</option>"; }).join("");
+        var riskOpts = '<option value="">Not set</option>' + cfg.riskLevels.map(function (x) { return '<option value="' + x.id + '"' + (r.risk_level === x.id ? " selected" : "") + ">" + ui.escapeHtml(x.label) + "</option>"; }).join("");
+        var rep = b.report || {};
+
+        el.innerHTML =
+          '<div class="card"><div class="flex between mb-4"><div><h2 class="mb-0">' + ui.escapeHtml(r.reference) + "</h2>" +
+            '<p class="muted mb-0">' + ui.escapeHtml(r.asset_title || "") + " · " + ui.escapeHtml([r.town, r.lga, r.state].filter(Boolean).join(", ")) + "</p></div>" +
+            '<div class="table-actions"><button class="btn btn--outline btn--sm" id="close-detail" type="button">Close</button>' +
+            '<a class="btn btn--outline btn--sm" target="_blank" href="report.html?id=' + r.id + '">Preview report</a></div></div>' +
+            '<div class="grid grid--3">' +
+              "<div><strong>Customer</strong><br>" + ui.escapeHtml(r.customer_name || "—") + "<br><span class='small muted'>" + ui.escapeHtml(r.email || "") + " · " + ui.escapeHtml(r.phone || "") + "</span></div>" +
+              "<div><strong>Buying</strong><br>" + ui.escapeHtml(r.buying_remote === "remotely" ? "Remotely" : "Locally") + "<br><span class='small muted'>" + ui.escapeHtml(r.country || "") + "</span></div>" +
+              "<div><strong>Asking price</strong><br>" + (r.asking_price ? ui.formatMoney(r.asking_price, r.currency) : "—") + "</div>" +
+            "</div></div>" +
+
+          '<div class="grid grid--2 mt-6">' +
+            '<div class="card"><h3>Status</h3>' +
+              '<div class="field mb-3"><label for="status-select">Workflow status</label><select id="status-select">' + statusOpts + "</select></div>" +
+              '<button class="btn btn--primary btn--sm" id="save-status" type="button">Update status</button>' +
+              '<hr><h3>Add progress update</h3>' +
+              '<div class="field mb-3"><label for="prog-msg">Message</label><textarea id="prog-msg"></textarea></div>' +
+              '<label class="checkbox mb-3"><input type="checkbox" id="prog-visible" checked> <span>Visible to customer</span></label>' +
+              '<button class="btn btn--primary btn--sm" id="save-prog" type="button">Add update</button>' +
+              '<hr><h4>Progress history</h4><ul class="small">' + progress + "</ul></div>" +
+
+            '<div class="card"><h3>Documents</h3><ul>' + docs + "</ul><hr>" +
+              "<h3>Assignment</h3><p class='small muted'>Assign a verification job to an approved professional.</p>" +
+              '<div class="field mb-3"><label for="assignee">Professional</label><input type="text" id="assignee" placeholder="Name (placeholder — no directory yet)"></div>' +
+              '<button class="btn btn--outline btn--sm" id="save-assign" type="button">Record assignment</button>' +
+              "<hr><h3>Support messages</h3><ul class='small'>" + ((b.support || []).map(function (m) { return "<li><strong>" + (m.from_customer ? "Customer" : "Us") + ":</strong> " + ui.escapeHtml(m.message) + "</li>"; }).join("") || "<li class='muted'>None</li>") + "</ul>" +
+              '<div class="field mt-3"><label class="sr-only" for="sup-msg">Reply</label><textarea id="sup-msg" placeholder="Reply to customer…"></textarea></div>' +
+              '<button class="btn btn--outline btn--sm" id="save-support" type="button">Send reply</button></div>' +
+          "</div>" +
+
+          '<div class="grid grid--2 mt-6">' +
+            '<div class="card"><h3>Quotation &amp; payment</h3>' +
+              '<div class="form-grid">' +
+                '<div class="field"><label for="q-base">Base fee (₦)</label><input type="number" id="q-base" value="' + (r.base_fee || 0) + '"></div>' +
+                '<div class="field"><label for="q-prof">Professional fees (₦)</label><input type="number" id="q-prof" value="' + (r.professional_fees || 0) + '"></div>' +
+                '<div class="field"><label for="q-third">Third-party charges (₦)</label><input type="number" id="q-third" value="' + (r.third_party_fees || 0) + '"></div>' +
+              "</div>" +
+              '<button class="btn btn--primary btn--sm mt-3" id="save-quote" type="button">Issue quotation</button>' +
+              "<hr><h4>Record confirmed payment</h4>" +
+              '<div class="form-grid"><div class="field"><label for="pay-amount">Amount (₦)</label><input type="number" id="pay-amount" value="' + (r.total_fee || 0) + '"></div>' +
+              '<div class="field"><label for="pay-ref">Bank reference</label><input type="text" id="pay-ref" placeholder="TRF-…"></div></div>' +
+              '<button class="btn btn--teal btn--sm mt-3" id="save-payment" type="button">Confirm payment (manual)</button>' +
+              '<div class="table-wrap mt-4"><table><thead><tr><th>Amount</th><th>Method</th><th>Ref</th><th>Status</th></tr></thead><tbody>' + payments + "</tbody></table></div></div>" +
+
+            '<div class="card"><h3>Verification report</h3>' +
+              '<div class="field mb-3"><label for="rep-risk">Risk category</label><select id="rep-risk">' + riskOpts + "</select></div>" +
+              '<div class="field mb-3"><label for="rep-summary">Summary</label><textarea id="rep-summary">' + ui.escapeHtml(rep.summary || "") + "</textarea></div>" +
+              '<div class="field mb-3"><label for="rep-docs">Documents received</label><textarea id="rep-docs">' + ui.escapeHtml(rep.documents_received || "") + "</textarea></div>" +
+              '<div class="field mb-3"><label for="rep-checks">Checks performed</label><textarea id="rep-checks">' + ui.escapeHtml(rep.checks_performed || "") + "</textarea></div>" +
+              '<div class="field mb-3"><label for="rep-findings">Findings &amp; discrepancies</label><textarea id="rep-findings">' + ui.escapeHtml(rep.findings || "") + "</textarea></div>" +
+              '<div class="field mb-3"><label for="rep-unresolved">Unresolved issues</label><textarea id="rep-unresolved">' + ui.escapeHtml(rep.unresolved || "") + "</textarea></div>" +
+              '<div class="field mb-3"><label for="rep-limits">Limitations</label><textarea id="rep-limits">' + ui.escapeHtml(rep.limitations || "This verification is a private due-diligence exercise. It is not a legal opinion and does not guarantee ownership.") + "</textarea></div>" +
+              '<div class="field mb-3"><label for="rep-next">Recommended next steps</label><textarea id="rep-next">' + ui.escapeHtml(rep.next_steps || "") + "</textarea></div>" +
+              '<div class="form-grid"><div class="field"><label for="rep-contrib">Contributors</label><input type="text" id="rep-contrib" value="' + ui.escapeHtml(rep.contributors || "") + '"></div>' +
+              '<div class="field"><label for="rep-reviewer">Reviewer / approver</label><input type="text" id="rep-reviewer" value="' + ui.escapeHtml(rep.reviewer || "") + '"></div></div>' +
+              '<label class="checkbox mt-3"><input type="checkbox" id="rep-published"' + (rep.published ? " checked" : "") + '> <span>Publish to customer</span></label>' +
+              '<button class="btn btn--gold mt-3" id="save-report" type="button">Save report' + (rep.version ? " (v" + rep.version + " → new version)" : "") + "</button></div>" +
+          "</div>";
+
+        bindDetail(r);
+      }
+
+      function bindDetail(r) {
+        document.getElementById("close-detail").addEventListener("click", function () {
+          document.getElementById("detail").classList.add("hidden");
+        });
+        document.getElementById("save-status").addEventListener("click", async function () {
+          try { await api.admin.updateStatus(r.id, document.getElementById("status-select").value); ui.toast("Status updated.", "success"); refresh(); } catch (e) { ui.toast("Update failed.", "danger"); }
+        });
+        document.getElementById("save-prog").addEventListener("click", async function () {
+          var msg = document.getElementById("prog-msg").value.trim();
+          if (!msg) return;
+          try { await api.admin.addProgress(r.id, msg, document.getElementById("prog-visible").checked); ui.toast("Progress added.", "success"); refresh(); } catch (e) { ui.toast("Failed.", "danger"); }
+        });
+        document.getElementById("save-quote").addEventListener("click", async function () {
+          var base = Number(document.getElementById("q-base").value || 0);
+          var prof = Number(document.getElementById("q-prof").value || 0);
+          var third = Number(document.getElementById("q-third").value || 0);
+          try { await api.admin.saveQuote(r.id, { base_fee: base, professional_fees: prof, third_party_fees: third, total: base + prof + third }); ui.toast("Quotation issued.", "success"); refresh(); } catch (e) { ui.toast("Failed.", "danger"); }
+        });
+        document.getElementById("save-payment").addEventListener("click", async function () {
+          var amount = Number(document.getElementById("pay-amount").value || 0);
+          var ref = document.getElementById("pay-ref").value.trim();
+          try { await api.admin.confirmPayment(r.id, amount, ref, "bank_transfer"); ui.toast("Payment confirmed and recorded.", "success"); refresh(); } catch (e) { ui.toast("Failed.", "danger"); }
+        });
+        document.getElementById("save-support").addEventListener("click", async function () {
+          var msg = document.getElementById("sup-msg").value.trim();
+          if (!msg) return;
+          try { await api.admin.addSupport(r.id, msg, false); ui.toast("Reply sent.", "success"); refresh(); } catch (e) { ui.toast("Failed.", "danger"); }
+        });
+        document.getElementById("save-assign").addEventListener("click", async function () {
+          var name = document.getElementById("assignee").value.trim();
+          if (!name) return;
+          try { await api.admin.addProgress(r.id, "Assigned to professional: " + name, false); ui.toast("Assignment recorded.", "success"); refresh(); } catch (e) { ui.toast("Failed.", "danger"); }
+        });
+        document.getElementById("save-report").addEventListener("click", async function () {
+          var report = {
+            request_id: r.id, reference: r.reference,
+            risk_level: document.getElementById("rep-risk").value,
+            summary: document.getElementById("rep-summary").value,
+            documents_received: document.getElementById("rep-docs").value,
+            checks_performed: document.getElementById("rep-checks").value,
+            findings: document.getElementById("rep-findings").value,
+            unresolved: document.getElementById("rep-unresolved").value,
+            limitations: document.getElementById("rep-limits").value,
+            next_steps: document.getElementById("rep-next").value,
+            contributors: document.getElementById("rep-contrib").value,
+            reviewer: document.getElementById("rep-reviewer").value,
+            published: document.getElementById("rep-published").checked
+          };
+          try { await api.admin.saveReport(report); ui.toast("Report saved.", "success"); refresh(); } catch (e) { ui.toast("Failed to save report.", "danger"); }
+        });
+      }
+
+      function typeLabel(id) { var t = cfg.documentTypes.find(function (x) { return x.id === id; }); return t ? t.label : id; }
+
+      async function refresh() {
+        await Promise.all([loadStats(), loadTable(), loadAudit()]);
+      }
+
+      await refresh();
+    });
+  </script>
+</body>
+</html>
